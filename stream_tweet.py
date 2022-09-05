@@ -2,6 +2,7 @@ import tweepy
 from dotenv import load_dotenv
 import os as os
 import requests as req
+import v2tweep as tt
 
 load_dotenv(verbose=True)  # Throws error if no .env file is found
 
@@ -22,12 +23,15 @@ post_client = tweepy.Client(
 class Listener(tweepy.StreamingClient):
     def on_tweet(self, tweet):
         print(f"{tweet.id} {tweet.created_at} ({tweet.author_id}): {tweet.text}")
+        url = tweet.id
         print("-" * 100)
         rule = self.get_rules().data[0].value
-        mes = send_whatsapp_message('971528183733', rule, tweet.author_id, tweet.text)
+        '''
+        mes = send_whatsapp_message('971528183733', rule, url, tweet.text)
         print(mes)
-        mes = send_whatsapp_message('2349093478089', rule, tweet.author_id, tweet.text)
+        mes = send_whatsapp_message('2349093478089', rule, url, tweet.text)
         print(mes)
+        '''
 
     def delete_all_rules(self):
         result = self.get_rules()
@@ -50,7 +54,7 @@ def start_stream(rule):
     printer.filter(expansions="author_id", tweet_fields="created_at")
 
 
-def send_whatsapp_message(number, rule, username, message):
+def send_whatsapp_message(number, rule, tweet_id, message):
     url = "https://graph.facebook.com/v14.0/105062785679834/messages"
     headers = {"Accept": "application/json", "Authorization": whatsapp_token}
     my_obj = {
@@ -58,7 +62,7 @@ def send_whatsapp_message(number, rule, username, message):
         "to": number,
         "type": "template",
         "template": {
-            "name": "new_alert",
+            "name": "new_message",
             "language": {
                 "code": "en"
             },
@@ -66,10 +70,6 @@ def send_whatsapp_message(number, rule, username, message):
                 {
                     "type": "body",
                     "parameters": [
-                        {
-                            "type": "text",
-                            "text": username
-                        },
                         {
                             "type": "text",
                             "text": message
@@ -84,6 +84,17 @@ def send_whatsapp_message(number, rule, username, message):
                             "text": rule
                         }
                     ]
+                },
+                {
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": "0",
+                    "parameters": [
+                        {
+                            "type": "text",
+                            "text": tweet_id
+                        }
+                    ]
                 }
             ]
         }
@@ -92,5 +103,8 @@ def send_whatsapp_message(number, rule, username, message):
 
 
 if __name__ == '__main__':
-    # send_whatsapp_message()
-    start_stream("from:esanolad_1 OR from:renoomokri")
+    start_stream("obidient")
+    start_stream("endsars")
+
+    # start_stream("from:esanolad_1 OR from:renoomokri")
+    # start_stream("IPOB AND Protest AND September AND 2022")

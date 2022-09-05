@@ -18,7 +18,6 @@ post_client = tweepy.Client(
     access_token=access_token, access_token_secret=access_token_secret
 )
 
-
 def send_tweet(message):
     try:
         response = post_client.create_tweet(text=message)

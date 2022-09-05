@@ -35,6 +35,11 @@ def user_info(user_id):
                                                       "location", "username", "name", "profile_image_url"]).data
 
 
+def user_id(user_name):
+    return client.get_users(usernames=user_name, user_fields=["public_metrics", "verified", "created_at", "protected",
+                                                             "location", "username", "name", "profile_image_url"]).data
+
+
 def get_likers(tweet_id):
     user_list = []
     for user in tweepy.Paginator(client.get_liking_users, tweet_id, max_results=100).flatten(limit=100):
@@ -127,11 +132,8 @@ def filter_main(dict_list):
 
 
 if __name__ == "__main__":
-    result = get_search_potentials("Kenneth Okonkwo")
-    original, formatted = filter_main(result)
-    original.sort(key=lambda x: x['public_metrics']['retweet_count'], reverse=True)
-    for k in formatted:
-        print(k)
+    print(user_info("1556260783826280449"))
+    print(user_id("esanolad_1"))
     # result = json.dumps(result[0], indent=3)
 
     # print(result[0]['text'])

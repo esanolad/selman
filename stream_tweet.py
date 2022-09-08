@@ -48,10 +48,15 @@ class Listener(tweepy.StreamingClient):
 
 def start_stream(rule):
     printer = Listener(bearer_token)
+    # printer2 = Listener(bearer_token)
+    # printer2.delete_all_rules()
     printer.delete_all_rules()
     rule = tweepy.StreamRule(value=rule)
     printer.add_rules(rule)
+    # rule = tweepy.StreamRule(value=rule2)
+    # printer2.add_rules(rule)
     printer.filter(expansions="author_id", tweet_fields="created_at")
+    # printer2.filter(expansions="author_id", tweet_fields="created_at")
 
 
 def send_whatsapp_message(number, rule, tweet_id, message):
@@ -104,7 +109,6 @@ def send_whatsapp_message(number, rule, tweet_id, message):
 
 if __name__ == '__main__':
     start_stream("obidient")
-    start_stream("endsars")
 
     # start_stream("from:esanolad_1 OR from:renoomokri")
     # start_stream("IPOB AND Protest AND September AND 2022")

@@ -1,5 +1,6 @@
 import tweepy
 
+
 def check_dict_in_list(tweet_list, item):
     flag = False
     for c in tweet_list:
@@ -14,6 +15,14 @@ def check_dict_in_list(tweet_list, item):
 
 
 def process_tweets(dict_list):
+    """
+
+    :param dict_list: List of searched tweet result
+    :return: a tuple containing three lists:
+        - new_list which is a sublist of the main list with duplicate retweets removed
+        - tweet_list is the list of dictionaries with unique retweets
+        - original_quoted_replied_list is the list of dictionaries with replied, quoted and original tweets
+    """
     new_list = []
     tweet_list = []
     original_quoted_replied_list = []
@@ -60,6 +69,11 @@ def process_tweets(dict_list):
 
 class TweetManager:
     def __init__(self, tweet_client, post_client):
+        """
+
+        :param tweet_client: tweepy client for searching
+        :param post_client:  tweepy client for posting
+        """
         self.post_client = post_client
         self.tweet_client = tweet_client
 

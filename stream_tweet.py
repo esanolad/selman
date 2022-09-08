@@ -2,7 +2,7 @@ import tweepy
 from dotenv import load_dotenv
 import os as os
 import requests as req
-import v2tweep as tt
+
 
 load_dotenv(verbose=True)  # Throws error if no .env file is found
 

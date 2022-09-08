@@ -1,16 +1,30 @@
-# This is a sample Python script.
+import tweepy
+from dotenv import load_dotenv
+import os as os
+import tweet_manager as t
+import json as json
 
-# Press ⌃R to execute it or replace it with your code.
-# Press Double ⇧ to search everywhere for classes, files, tool windows, actions, and settings.
+load_dotenv(verbose=True)  # Throws error if no .env file is found
 
+consumer_key = os.getenv("TWITTER_CONSUMER_KEY")
+consumer_secret = os.getenv("TWITTER_CONSUMER_SECRET")
+access_token = os.getenv("TWITTER_ACCESS_TOKEN")
+access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press ⌘F8 to toggle the breakpoint.
+client = tweepy.Client(bearer_token)
 
+post_client = tweepy.Client(
+    consumer_key=consumer_key, consumer_secret=consumer_secret,
+    access_token=access_token, access_token_secret=access_token_secret
+)
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+if __name__ == "__main__":
+    tweeter = t.TweetManager(client, post_client)
+    ttt = tweeter.get_search_potentials("obidient")
+    new_list, tweet_list, quoted_list = t.process_tweets(ttt)
+    for k in quoted_list:
+        print(k)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+    # print(tweeter.get_retweeters(1563613785281007616))
+    # print(tweeter.user_info(user_name="esanolad_1"))

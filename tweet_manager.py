@@ -1,22 +1,61 @@
 import tweepy
-from dotenv import load_dotenv
-import os as os
-import json as json
 
-load_dotenv(verbose=True)  # Throws error if no .env file is found
+def check_dict_in_list(tweet_list, item):
+    flag = False
+    for c in tweet_list:
+        try:
+            if item == c["referenced_tweets"][0]:
+                flag = True
+                break
+        except KeyError:  # ignore items in the list that do not have referenced_tweets
+            flag = True
+            break
+    return flag
 
-consumer_key = os.getenv("TWITTER_CONSUMER_KEY")
-consumer_secret = os.getenv("TWITTER_CONSUMER_SECRET")
-access_token = os.getenv("TWITTER_ACCESS_TOKEN")
-access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
-bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
 
-client = tweepy.Client(bearer_token)
-
-post_client = tweepy.Client(
-    consumer_key=consumer_key, consumer_secret=consumer_secret,
-    access_token=access_token, access_token_secret=access_token_secret
-)
+def process_tweets(dict_list):
+    new_list = []
+    tweet_list = []
+    original_quoted_replied_list = []
+    for item in dict_list:
+        if "referenced_tweets" in item.keys():  # check if the tweet is a referenced tweet
+            ff = item["referenced_tweets"][0]
+            if check_dict_in_list(new_list, ff):  # check if this tweet has been added to the new list and do nothing
+                pass
+            else:
+                if 'entities' in item.keys():  # check if the tweet is a retweet
+                    new_list.append(item)  # referenced_tweet has not been added to the list,
+                    main_tweet = {'author_id': item['entities']['mentions'][0]['id'],
+                                  'username': item['entities']['mentions'][0]['username'],
+                                  'tweet_id': item["referenced_tweets"][0]['id'],
+                                  'retweet_count': item['public_metrics']['retweet_count']}
+                    tweet_list.append(main_tweet)
+                elif item['referenced_tweets'][0]['type'] == "quoted":
+                    new_list.append(item)
+                    main_tweet = {'author_id': item['author_id'],
+                                  'username': "", 'ref_tweet': item['referenced_tweets'][0]['id'],
+                                  'tweet_id': item['id'], "text": item['text'], "type": "quoted",
+                                  'retweet_count': item['public_metrics']['retweet_count']}
+                    original_quoted_replied_list.append(main_tweet)
+                elif item['referenced_tweets'][0]['type'] == "replied_to":
+                    new_list.append(item)
+                    main_tweet = {'author_id': item['author_id'],
+                                  'username': "", 'ref_tweet': item['referenced_tweets'][0]['id'],
+                                  'tweet_id': item['id'], "text": item['text'], "type": "replied_to",
+                                  'retweet_count': item['public_metrics']['retweet_count']}
+                    original_quoted_replied_list.append(main_tweet)
+                else:  # for  replied tweet
+                    print(item)  # unknown tweet type
+        else:  # original tweets
+            new_list.append(item)
+            main_tweet = {'author_id': item['author_id'],
+                          'username': "", 'ref_tweet': "",
+                          'tweet_id': item['id'], "text": item['text'], "type": "original",
+                          'retweet_count': item['public_metrics']['retweet_count']}
+            original_quoted_replied_list.append(main_tweet)
+    new_list.sort(key=lambda x: x['public_metrics']['retweet_count'], reverse=True)
+    tweet_list.sort(key=lambda x: x['retweet_count'], reverse=True)
+    return new_list, tweet_list, original_quoted_replied_list
 
 
 class TweetManager:
@@ -36,9 +75,9 @@ class TweetManager:
 
     def get_likers(self, tweet_id):
         user_list = []
-        for user in tweepy.Paginator(self.tweet_client.get_liking_users, tweet_id, max_results=100).flatten(limit=100):
+        for user in tweepy.Paginator(self.tweet_client.get_liking_users, tweet_id, max_results=10).flatten(limit=10):
             user_list.append(user.id)
-        return user_list
+        return self.users_info(user_list)
 
     def user_info(self, user_id="", user_name=""):
         if user_id != "":
@@ -62,35 +101,66 @@ class TweetManager:
                          "screen_name": user.name,
                          "verified": user.verified,
                          "location": user.location,
-                         "created_at": str(user.created_at)
+                         "created_at": str(user.created_at),
+                         "image_url": user.profile_image_url,
+                         "followers_count": user.public_metrics["followers_count"],
+                         "following_count": user.public_metrics["following_count"],
+                         "tweet_count": user.public_metrics["tweet_count"],
+                         "listed_count": user.public_metrics["listed_count"]
                          }
             return user_dict
+        else:
+            return "Not Found"
+
+    def users_info(self, users_list):
+        users = []
+        users_id_list = self.tweet_client.get_users(ids=users_list,
+                                                    user_fields=["public_metrics", "verified", "created_at",
+                                                                 "protected",
+                                                                 "location", "username", "name",
+                                                                 "profile_image_url"]).data
+        if users_id_list is not None:
+            for user in users_id_list:
+                user_dict = {"id": user.id,
+                             "user_name": user.username,
+                             "screen_name": user.name,
+                             "verified": user.verified,
+                             "location": user.location,
+                             "created_at": str(user.created_at),
+                             "image_url": user.profile_image_url,
+                             "followers_count": user.public_metrics["followers_count"],
+                             "following_count": user.public_metrics["following_count"],
+                             "tweet_count": user.public_metrics["tweet_count"],
+                             "listed_count": user.public_metrics["listed_count"]
+                             }
+                users.append(user_dict)
+            return users
         else:
             return "Not Found"
 
     def get_quoters(self, tweet_id):
         user_list = []
         for tweet in tweepy.Paginator(self.tweet_client.get_quote_tweets, tweet_id, tweet_fields=["author_id"],
-                                      max_results=100).flatten(limit=100):
+                                      max_results=100).flatten(limit=1000):
             user_list.append(tweet.author_id)
-        return user_list
+        return self.users_info(user_list)
 
     def get_retweeters(self, tweet_id):
         user_list = []
-        for user in tweepy.Paginator(self.tweet_client.get_retweeters, tweet_id, max_results=100).flatten(limit=100):
+        for user in tweepy.Paginator(self.tweet_client.get_retweeters, tweet_id, max_results=10).flatten(limit=10):
             user_list.append(user.id)
-        return user_list
+        return self.users_info(user_list)
 
-    def get_tweet_potentials(self, tweet_id, tweet_count=10000, followers_count=1000):
+    def get_tweet_influencers(self, tweet_id, tweet_count=10000, followers_count=1000):
         retweeter_list = self.get_retweeters(tweet_id)
         qouter_list = self.get_quoters(tweet_id)
         liker_list = self.get_likers(tweet_id)
-        potential_retweeters = [x for x in self.user_info(retweeter_list) if x.public_metrics['followers_count'] >
-                                followers_count and x.public_metrics['tweet_count'] > tweet_count]
-        potential_quoters = [x for x in self.user_info(qouter_list) if x.public_metrics['followers_count'] >
-                             followers_count and x.public_metrics['tweet_count'] > tweet_count]
-        potential_likers = [x for x in self.user_info(liker_list) if x.public_metrics['followers_count'] >
-                            followers_count and x.public_metrics['tweet_count'] > tweet_count]
+        potential_retweeters = [user for user in retweeter_list if user['followers_count'] >
+                                followers_count and user['tweet_count'] > tweet_count]
+        potential_quoters = [user for user in qouter_list if user['followers_count'] >
+                             followers_count and user['tweet_count'] > tweet_count]
+        potential_likers = [user for user in liker_list if user['followers_count'] >
+                            followers_count and user['tweet_count'] > tweet_count]
         return potential_likers, potential_retweeters, potential_quoters
 
     def get_search_potentials(self, search_term):
@@ -108,7 +178,4 @@ class TweetManager:
 
 
 if __name__ == "__main__":
-    tweeter = TweetManager(client, post_client)
-    # print(tweeter.get_retweeters(1563613785281007616))
-    # print(tweeter.user_info('1556260783826280449'))
-    print(tweeter.user_info('1556260783826280449'))
+    pass

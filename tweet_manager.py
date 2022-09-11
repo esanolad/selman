@@ -68,14 +68,24 @@ def process_tweets(dict_list):
 
 
 class TweetManager:
-    def __init__(self, tweet_client, post_client):
-        """
+    def __init__(self, bearer_token, consumer_key="", consumer_secret="",
+                 access_token="", access_token_secret=""):
 
-        :param tweet_client: tweepy client for searching
-        :param post_client:  tweepy client for posting
         """
-        self.post_client = post_client
-        self.tweet_client = tweet_client
+        :param bearer_token:
+        :param consumer_key:
+        :param consumer_secret:
+        :param access_token:
+        :param access_token_secret:
+        """
+        self.tweet_client = tweepy.Client(bearer_token)
+        self.post_client = tweepy.Client(
+            consumer_key=consumer_key, consumer_secret=consumer_secret,
+            access_token=access_token, access_token_secret=access_token_secret
+        )
+        auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+        auth.set_access_token(access_token, access_token_secret)
+        self.api = tweepy.API(auth, wait_on_rate_limit=True)
 
     def send_tweet(self, message):
         try:
@@ -189,6 +199,14 @@ class TweetManager:
         potentials = [x for x in tweet_list if x["public_metrics"]["retweet_count"] >= -1 or
                       x["public_metrics"]["like_count"] >= 1000]
         return potentials
+
+    def get_trends(self, woeid=23424908):
+        result: [] = self.api.get_place_trends(id=woeid)
+        trends = result[0]['trends']
+        # filtered_trend = list(filter(lambda trend: trend['tweet_volume'] is not None, trends))
+        # filtered_trend_none = filter(lambda trend: trend['tweet_volume'] is None, trends)
+
+        return trends
 
 
 if __name__ == "__main__":

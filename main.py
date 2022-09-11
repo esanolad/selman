@@ -20,11 +20,17 @@ post_client = tweepy.Client(
 )
 
 if __name__ == "__main__":
-    tweeter = t.TweetManager(client, post_client)
-    ttt = tweeter.get_search_potentials("obidient")
-    new_list, tweet_list, quoted_list = t.process_tweets(ttt)
-    for k in quoted_list:
-        print(k)
+
+    tweeter = t.TweetManager(bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret,
+                             access_token=access_token, access_token_secret=access_token_secret)
+
+    print(tweeter.get_trends())
+
+
+    # ttt = tweeter.get_search_potentials("obidient")
+    # new_list, tweet_list, quoted_list = t.process_tweets(ttt)
+    # for k in quoted_list:
+    #     print(k)
 
     # print(tweeter.get_retweeters(1563613785281007616))
     # print(tweeter.user_info(user_name="esanolad_1"))

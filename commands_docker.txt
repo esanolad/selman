@@ -1,0 +1,17 @@
+#build image
+docker build --tag selman .
+docker build --tag selmanconnect.azurecr.io/selman/selman .
+docker buildx build --platform=linux/amd64 -t selmanconnect.azurecr.io/selman/selman .
+#run the image with environment variable files
+docker run --env-file=.env selman
+
+
+docker network create elastic
+
+docker run --name es-node01 -d --net elastic -p 9200:9200 -p 9300:9300 -t docker.elastic.co/elasticsearch/elasticsearch:8.4.1
+docker run --name kib-01 -d --net elastic -p 5601:5601 docker.elastic.co/kibana/kibana:8.4.1
+
+docker exec -it es-node01 /usr/share/elasticsearch/bin/elasticsearch-create-enrollment-token -s kibana
+docker exec -it kib-01  bin/kibana-verification-code
+docker exec -it es-node01 /usr/share/elasticsearch/bin/elasticsearch-reset-password -u elastic
+docker cp es-node01:/usr/share/elasticsearch/config/certs/http_ca.crt .

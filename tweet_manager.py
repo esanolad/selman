@@ -1,7 +1,7 @@
 import tweepy
 
 
-def check_dict_in_list(tweet_list, item):
+def check_referenced_tweets_in_tweet_list(tweet_list, item):
     flag = False
     for c in tweet_list:
         try:
@@ -14,10 +14,22 @@ def check_dict_in_list(tweet_list, item):
     return flag
 
 
+def check_tweet_id_in_tweet_list(tweet_list, item):
+    for c in tweet_list:
+        try:
+            if item == c["referenced_tweets"][0]['id']:
+                text = c['text']
+                return text[text.index(':') + 1:]  # return text without the RT @ username
+
+        except KeyError:  # ignore items in the list that do not have referenced_tweets
+            break
+    return False
+
+
 def process_tweets(dict_list):
     """
 
-    :param dict_list: List of searched tweet result
+    param dict_list: List of searched tweet result
     :return: a tuple containing three lists:
         - new_list which is a sublist of the main list with duplicate retweets removed
         - tweet_list is the list of dictionaries with unique retweets
@@ -29,7 +41,8 @@ def process_tweets(dict_list):
     for item in dict_list:
         if "referenced_tweets" in item.keys():  # check if the tweet is a referenced tweet
             ff = item["referenced_tweets"][0]
-            if check_dict_in_list(new_list, ff):  # check if this tweet has been added to the new list and do nothing
+            if check_referenced_tweets_in_tweet_list(new_list, ff):
+                # check if this tweet has been added to the new list and do nothing
                 pass
             else:
                 if 'entities' in item.keys():  # check if the tweet is a retweet
@@ -96,6 +109,22 @@ class TweetManager:
                 return 'Error in sending tweet'
         except Exception as e:
             return e.api_messages[0]
+
+    def get_tweet_text(self, tweet_id):
+        return self.tweet_client.get_tweet(tweet_id).data
+
+    def get_my_timeline(self):
+        res = self.post_client.get_home_timeline()
+        if res.data:
+            return res.data[0]
+
+    def create_list(self):
+        return self.post_client.create_list('national', private=True)
+
+    def get_list(self, list_id):
+        # list_id='1569171375193030657'
+
+        return self.tweet_client.get_list(list_id)
 
     def get_likers(self, tweet_id):
         user_list = []
@@ -165,7 +194,7 @@ class TweetManager:
     def get_quoters(self, tweet_id):
         user_list = []
         for tweet in tweepy.Paginator(self.tweet_client.get_quote_tweets, tweet_id, tweet_fields=["author_id"],
-                                      max_results=100).flatten(limit=1000):
+                                      max_results=100).flatten(limit=100):
             user_list.append(tweet.author_id)
         return self.users_info(user_list)
 
@@ -187,18 +216,40 @@ class TweetManager:
                             followers_count and user['tweet_count'] > tweet_count]
         return potential_likers, potential_retweeters, potential_quoters
 
+    def get_search_raw(self, search_term):
+        tweet_list = []
+        try:
+            for user in tweepy.Paginator(self.tweet_client.search_recent_tweets, search_term, max_results=100,
+                                         tweet_fields=["author_id", "created_at", "geo", "public_metrics"],
+                                         expansions=["attachments.media_keys", "attachments.poll_ids", "author_id",
+                                                     "entities.mentions.username", "geo.place_id", "place.fields"
+                                                     "in_reply_to_user_id",
+                                                     "referenced_tweets.id", "referenced_tweets.id.author_id"],
+                                         media_fields=["url"], user_fields=["username"]).flatten(limit=3000):
+                tweet_list.append(user.data)
+            return tweet_list
+        except Exception as e:  # handles to many request
+            print(e)  # logs this error
+            return "wait"
+
     def get_search_potentials(self, search_term):
         tweet_list = []
-        for user in tweepy.Paginator(self.tweet_client.search_recent_tweets, search_term, max_results=100,
-                                     tweet_fields=["author_id", "created_at", "geo", "public_metrics"],
-                                     expansions=["attachments.media_keys", "attachments.poll_ids", "author_id",
-                                                 "entities.mentions.username", "geo.place_id", "in_reply_to_user_id",
-                                                 "referenced_tweets.id", "referenced_tweets.id.author_id"],
-                                     media_fields=["url"], user_fields=["username"]).flatten(limit=1000):
-            tweet_list.append(user.data)
-        potentials = [x for x in tweet_list if x["public_metrics"]["retweet_count"] >= -1 or
-                      x["public_metrics"]["like_count"] >= 1000]
-        return potentials
+        try:
+
+            for user in tweepy.Paginator(self.tweet_client.search_recent_tweets, search_term, max_results=100,
+                                         tweet_fields=["author_id", "created_at", "geo", "public_metrics"],
+                                         expansions=["attachments.media_keys", "attachments.poll_ids", "author_id",
+                                                     "entities.mentions.username", "geo.place_id",
+                                                     "in_reply_to_user_id",
+                                                     "referenced_tweets.id", "referenced_tweets.id.author_id"],
+                                         media_fields=["url"], user_fields=["username"]).flatten(limit=1000):
+                tweet_list.append(user.data)
+            potentials = [x for x in tweet_list if x["public_metrics"]["retweet_count"] >= 10 or
+                          x["public_metrics"]["like_count"] >= 1000]
+            return potentials
+        except Exception as e:  # handles to many request
+            print(e)  # logs this error
+            return "wait"
 
     def get_trends(self, woeid=23424908):
         result: [] = self.api.get_place_trends(id=woeid)

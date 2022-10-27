@@ -1,3 +1,5 @@
+import re
+
 import tweepy
 
 
@@ -258,6 +260,8 @@ class TweetManager:
         # filtered_trend_none = filter(lambda trend: trend['tweet_volume'] is None, trends)
 
         return trends
+
+
 
 
 if __name__ == "__main__":

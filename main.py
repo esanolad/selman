@@ -1,3 +1,5 @@
+import re
+from textblob import TextBlob
 import tweepy
 from dotenv import load_dotenv
 import os as os
@@ -23,17 +25,21 @@ post_client = tweepy.Client(
 )
 
 
-def elastic():
-    es = Elasticsearch(hosts=os.getenv("ELASTIC"), ca_certs="http_ca.crt",
-                       basic_auth=("elastic", os.getenv("ELASTIC_PASSWORD"))
-                       )
-    res = es.index(
-        index='lord-of-the-rings',
-        document={
-            'character': 'Maja',
-            'quote': 'This will happen too'
-        })
-    print(res)
+def get_nlp(tweet):
+    tweet = ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)", " ", tweet).split())
+    analysis = TextBlob(tweet)
+    if analysis.sentiment.polarity > 0:
+        sentiment = 'positive'
+    elif analysis.sentiment.polarity == 0:
+        sentiment = 'neutral'
+    else:
+        sentiment = 'negative'
+
+    return sentiment
+
+
+
+
 
 
 def hour_rounder(t):
@@ -110,7 +116,7 @@ def keep2():
         print("Getting each tweet")
         term = trend_item["name"] + " -is:retweet -is:reply -is:quote"  # original tweet
         term = term.replace(' and ', ' \"and\" ')  # replacing and with "and"
-        term = term.replace(' or ', ' \"or\" ')    # replacing or with "or"
+        term = term.replace(' or ', ' \"or\" ')  # replacing or with "or"
         term = term.replace(' AND ', ' \"AND\" ')  # replacing and with "and"
         term = term.replace(' OR ', ' \"OR\" ')  # replacing or with "or"
         tw = tweeter.get_search_raw(term)
@@ -121,14 +127,18 @@ def keep2():
         # sends
         for item in tw:
             time.sleep(0.01)
-            print(item)
+            print(item["text"])
             item['time_stamp'] = hour_rounder(datetime.now())
             item['trend_name'] = trend_item["name"]
-
-            res = es.index(
-                index='original_tweets',
-                document=item
-            )
+            item['sentiment'] = get_nlp(item["text"])
+            try:
+                res = es.index(
+                    index='original_tweets',
+                    document=item
+                )
+            except Exception as e:
+                # logs the exception
+                print(e)
 
         print("*" * 100)
 
@@ -137,6 +147,3 @@ if __name__ == "__main__":
     keep2()
 
     # tw = tweeter.get_search_raw('beauty said or love light -is:retweet -is:reply -is:quote')
-
-
-

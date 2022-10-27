@@ -222,7 +222,7 @@ class TweetManager:
             for user in tweepy.Paginator(self.tweet_client.search_recent_tweets, search_term, max_results=100,
                                          tweet_fields=["author_id", "created_at", "geo", "public_metrics"],
                                          expansions=["attachments.media_keys", "attachments.poll_ids", "author_id",
-                                                     "entities.mentions.username", "geo.place_id", "place.fields"
+                                                     "entities.mentions.username", "geo.place_id",
                                                      "in_reply_to_user_id",
                                                      "referenced_tweets.id", "referenced_tweets.id.author_id"],
                                          media_fields=["url"], user_fields=["username"]).flatten(limit=3000):

@@ -26,11 +26,15 @@ class Listener(tweepy.StreamingClient):
         url = tweet.id
         print("-" * 100)
         rule = self.get_rules().data[0].value
+        mes = send_whatsapp_message('2348076703743', rule, url, tweet.text)
+        print(mes)
+
         '''
         mes = send_whatsapp_message('971528183733', rule, url, tweet.text)
         print(mes)
-        mes = send_whatsapp_message('2349093478089', rule, url, tweet.text)
+        mes = send_whatsapp_message('2348076703743', rule, url, tweet.text)
         print(mes)
+        
         '''
 
     def delete_all_rules(self):
@@ -108,7 +112,7 @@ def send_whatsapp_message(number, rule, tweet_id, message):
 
 
 if __name__ == '__main__':
-    start_stream("obidient")
+    start_stream("threewords")
 
     # start_stream("from:esanolad_1 OR from:renoomokri")
     # start_stream("IPOB AND Protest AND September AND 2022")

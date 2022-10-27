@@ -107,8 +107,13 @@ def keep2():
             index='daily_trends',
             document=trend_item
         )
-        print("Gettign each tweet")
-        tw = tweeter.get_search_raw(trend_item["name"])
+        print("Getting each tweet")
+        term = trend_item["name"] + " -is:retweet -is:reply -is:quote"  # original tweet
+        term = term.replace(' and ', ' \"and\" ')  # replacing and with "and"
+        term = term.replace(' or ', ' \"or\" ')    # replacing or with "or"
+        term = term.replace(' AND ', ' \"AND\" ')  # replacing and with "and"
+        term = term.replace(' OR ', ' \"OR\" ')  # replacing or with "or"
+        tw = tweeter.get_search_raw(term)
         if tw == "wait":
             print("waiting for 15 minutes")
             time.sleep(60 * 10)
@@ -121,7 +126,7 @@ def keep2():
             item['trend_name'] = trend_item["name"]
 
             res = es.index(
-                index='tweets',
+                index='original_tweets',
                 document=item
             )
 
@@ -129,5 +134,9 @@ def keep2():
 
 
 if __name__ == "__main__":
-    # elastic()
     keep2()
+
+    # tw = tweeter.get_search_raw('beauty said or love light -is:retweet -is:reply -is:quote')
+
+
+

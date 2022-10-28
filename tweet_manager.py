@@ -221,13 +221,13 @@ class TweetManager:
     def get_search_raw(self, search_term):
         tweet_list = []
         try:
-            for user in tweepy.Paginator(self.tweet_client.search_recent_tweets, search_term, max_results=100,
+            for user in tweepy.Paginator(self.tweet_client.search_recent_tweets, search_term, max_results=10,
                                          tweet_fields=["author_id", "created_at", "geo", "public_metrics"],
                                          expansions=["attachments.media_keys", "attachments.poll_ids", "author_id",
                                                      "entities.mentions.username", "geo.place_id",
                                                      "in_reply_to_user_id",
                                                      "referenced_tweets.id", "referenced_tweets.id.author_id"],
-                                         media_fields=["url"], user_fields=["username"]).flatten(limit=3000):
+                                         media_fields=["url"], user_fields=["username"]).flatten(limit=3):
                 tweet_list.append(user.data)
             return tweet_list
         except Exception as e:  # handles to many request

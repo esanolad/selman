@@ -119,6 +119,7 @@ def keep2():
         term = term.replace(' or ', ' \"or\" ')  # replacing or with "or"
         term = term.replace(' AND ', ' \"AND\" ')  # replacing and with "and"
         term = term.replace(' OR ', ' \"OR\" ')  # replacing or with "or"
+        term = term.replace(' & ', ' \"&\" ')  # replacing &
         tw = tweeter.get_search_raw(term)
         if tw == "wait":
             print("waiting for 15 minutes")
@@ -133,7 +134,7 @@ def keep2():
             item['sentiment'] = get_nlp(item["text"])
             try:
                 res = es.index(
-                    index='original_tweets',
+                    index='original_new',
                     document=item
                 )
             except Exception as e:

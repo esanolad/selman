@@ -4,7 +4,8 @@ import tweepy
 from dotenv import load_dotenv
 import os as os
 import tweet_manager as t
-import time as time
+import schedule
+import time
 from elasticsearch import Elasticsearch, helpers
 from datetime import timedelta, datetime
 import json as json
@@ -38,17 +39,13 @@ def get_nlp(tweet):
     return sentiment
 
 
-
-
-
-
 def hour_rounder(t):
     # Rounds to nearest hour by adding a timedelta hour if minute >= 30
     return (t.replace(second=0, microsecond=0, minute=0, hour=t.hour)
             + timedelta(hours=t.minute // 30))
 
 
-def keep():
+def old_index():
     es = Elasticsearch(hosts=os.getenv("ELASTIC"), ca_certs="http_ca.crt",
                        basic_auth=("elastic", os.getenv("ELASTIC_PASSWORD"))
                        )
@@ -90,20 +87,18 @@ def keep():
 
             time.sleep(0.01)
         print("Trend text ", trend_item)
-        # result['trend'] = trend_item
-        # result['trend_data'] = process_list
 
         print("*" * 100)
         # time.sleep(15*60)   #wait for 15 minutes to take care of twitter rate limits
 
 
-def keep2():
+def get_tweets_to_elastic():
     es = Elasticsearch(hosts=os.getenv("ELASTIC"), ca_certs="http_ca.crt",
-                       basic_auth=("elastic", os.getenv("ELASTIC_PASSWORD"))
+                       basic_auth=(os.getenv("ELASTIC_USERNAME"), os.getenv("ELASTIC_PASSWORD"))
                        )
     tweeter = t.TweetManager(bearer_token, consumer_key=consumer_key, consumer_secret=consumer_secret,
                              access_token=access_token, access_token_secret=access_token_secret)
-
+    index = os.getenv("ELASTIC_INDEX")
     trends = tweeter.get_trends()
 
     for trend_item in trends:
@@ -120,21 +115,30 @@ def keep2():
         term = term.replace(' AND ', ' \"AND\" ')  # replacing and with "and"
         term = term.replace(' OR ', ' \"OR\" ')  # replacing or with "or"
         term = term.replace(' & ', ' \"&\" ')  # replacing &
+        term = term.replace('$', ' \"$\" ')  # replacing $
+
         tw = tweeter.get_search_raw(term)
-        if tw == "wait":
+        if tw[0] == "wait":
+            # logs to elastic
+            tw = tweeter.get_search_raw(trend_item["name"])
+            tweet_error = {"time_stamp": datetime.now(), "error": tw[1]}
+            res = es.index(
+                index='twitter_error',
+                document=tweet_error
+            )
             print("waiting for 15 minutes")
             time.sleep(60 * 10)
-            tw = tweeter.get_search_raw(trend_item["name"])
+
         # sends
         for item in tw:
             time.sleep(0.01)
-            print(item["text"])
+            #print(item["text"])
             item['time_stamp'] = hour_rounder(datetime.now())
             item['trend_name'] = trend_item["name"]
             item['sentiment'] = get_nlp(item["text"])
             try:
                 res = es.index(
-                    index='original_new',
+                    index=index,
                     document=item
                 )
             except Exception as e:
@@ -145,6 +149,8 @@ def keep2():
 
 
 if __name__ == "__main__":
-    keep2()
-
-    # tw = tweeter.get_search_raw('beauty said or love light -is:retweet -is:reply -is:quote')
+    get_tweets_to_elastic()
+    schedule.every(4).hours.do(get_tweets_to_elastic)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

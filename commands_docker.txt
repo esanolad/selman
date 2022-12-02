@@ -1,9 +1,13 @@
 #build image
 docker build --tag selman .
+docker buildx build --platform=linux/amd64 --tag selman
 docker build --tag selmanconnect.azurecr.io/selman/selman .
 docker buildx build --platform=linux/amd64 -t selmanconnect.azurecr.io/selman/selman .
 #run the image with environment variable files
-docker run --env-file=.env selman
+docker run -d --env-file=.env selman
+docker run -d --net elastic --env-file=.env selman
+
+docker cp http_ca.crt da929928d7ce:/app/http_ca.crt
 
 
 docker network create elastic

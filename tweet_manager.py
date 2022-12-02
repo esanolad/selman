@@ -232,7 +232,7 @@ class TweetManager:
             return tweet_list
         except Exception as e:  # handles to many request
             print(e)  # logs this error
-            return "wait"
+            return ["wait", e]
 
     def get_search_potentials(self, search_term):
         tweet_list = []
@@ -266,3 +266,4 @@ class TweetManager:
 
 if __name__ == "__main__":
     pass
+

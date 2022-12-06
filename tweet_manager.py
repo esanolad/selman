@@ -227,7 +227,7 @@ class TweetManager:
                                                      "entities.mentions.username", "geo.place_id",
                                                      "in_reply_to_user_id",
                                                      "referenced_tweets.id", "referenced_tweets.id.author_id"],
-                                         media_fields=["url"], user_fields=["username"]).flatten(limit=3000):
+                                         media_fields=["url"], user_fields=["username"]).flatten(limit=1000):
                 tweet_list.append(user.data)
             return tweet_list
         except Exception as e:  # handles to many request

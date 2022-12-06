@@ -1,6 +1,6 @@
 #build image
 docker build --tag selman .
-docker buildx build --platform=linux/amd64 --tag selman
+docker buildx build --platform=linux/amd64 --tag selman .
 docker build --tag selmanconnect.azurecr.io/selman/selman .
 docker buildx build --platform=linux/amd64 -t selmanconnect.azurecr.io/selman/selman .
 #run the image with environment variable files

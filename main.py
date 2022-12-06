@@ -127,7 +127,7 @@ def get_tweets_to_elastic():
                 document=tweet_error
             )
             print("waiting for 15 minutes")
-            time.sleep(60 * 10)
+            time.sleep(60 * 15)
 
         # sends
         for item in tw:
@@ -149,8 +149,10 @@ def get_tweets_to_elastic():
 
 
 if __name__ == "__main__":
+    print ("waiting for 5 minutes for certificate copy")
+    time.sleep(60 * 5)
     get_tweets_to_elastic()
-    schedule.every(4).hours.do(get_tweets_to_elastic)
+    schedule.every(6).hours.do(get_tweets_to_elastic)
     while True:
         schedule.run_pending()
         time.sleep(1)

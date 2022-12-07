@@ -121,7 +121,7 @@ def get_tweets_to_elastic():
         if tw[0] == "wait":
             # logs to elastic
             tw = tweeter.get_search_raw(trend_item["name"])
-            tweet_error = {"time_stamp": datetime.now(), "error": tw[1]}
+            tweet_error = {"time_stamp": datetime.now().isoformat(), "error": tw[1]}
             res = es.index(
                 index='twitter_error',
                 document=tweet_error
